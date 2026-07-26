@@ -1,0 +1,187 @@
+name: Update and build sing-box cache
+run-name: "sing-box cache: ${{ inputs.commit_sha || 'latest Bump version' }}"
+
+on:
+  schedule:
+    # 00:00 UTC is 08:00 in Asia/Shanghai.
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "sing-box commit SHA to build (commit message is not checked)"
+        required: true
+        type: string
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: false
+
+env:
+  CACHE_NAME: rannj-nixos
+
+jobs:
+  build:
+    if: >-
+      github.ref_type == 'branch' &&
+      github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    outputs:
+      base_sha: ${{ steps.base.outputs.sha }}
+      metadata_changed: ${{ steps.metadata.outputs.changed }}
+      source_json: ${{ steps.metadata.outputs.source_json }}
+
+    steps:
+      - name: Check out default branch
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Record build base
+        id: base
+        run: echo "sha=$(git rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
+
+      - name: Validate manual commit input
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+        run: |
+          if [[ ! "${COMMIT_SHA}" =~ ^[0-9A-Fa-f]{7,40}$ ]]; then
+            echo "commit_sha must contain 7 to 40 hexadecimal characters." >&2
+            exit 1
+          fi
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+        with:
+          github_access_token: ${{ github.token }}
+
+      - name: Configure read-only Cachix
+        uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
+        with:
+          name: ${{ env.CACHE_NAME }}
+          skipPush: true
+
+      - name: Run repository checks
+        run: |
+          nix build \
+            --no-link \
+            --print-build-logs \
+            --no-update-lock-file \
+            .#checks.x86_64-linux.updater \
+            .#checks.x86_64-linux.workflow
+
+      - name: Select and update sing-box commit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MANUAL_COMMIT_SHA: ${{ inputs.commit_sha }}
+        run: |
+          if [[ -n "${MANUAL_COMMIT_SHA}" ]]; then
+            ./scripts/update-sing-box.sh --commit "${MANUAL_COMMIT_SHA}"
+          else
+            ./scripts/update-sing-box.sh
+          fi
+
+      - name: Verify updater scope
+        run: |
+          git diff --check
+          unexpected="$(
+            git status --porcelain --untracked-files=all |
+              grep -vE '^ M source\.json$' || true
+          )"
+          if [[ -n "${unexpected}" ]]; then
+            echo "Updater changed files outside source.json:" >&2
+            printf '%s\n' "${unexpected}" >&2
+            exit 1
+          fi
+
+      - name: Build and smoke-test x86_64-linux package
+        id: package
+        run: |
+          output_path="$(
+            nix build \
+              --no-link \
+              --print-build-logs \
+              --print-out-paths \
+              --no-update-lock-file \
+              .#packages.x86_64-linux.sing-box
+          )"
+          if [[ "${output_path}" != /nix/store/* || "${output_path}" == *$'\n'* ]]; then
+            echo "Expected exactly one Nix store output, got: ${output_path}" >&2
+            exit 1
+          fi
+
+          version="$(jq -r '.version' source.json)"
+          "${output_path}/bin/sing-box" version | tee /tmp/sing-box-version.txt
+          grep -F -- "${version}" /tmp/sing-box-version.txt >/dev/null
+          echo "out_path=${output_path}" >>"${GITHUB_OUTPUT}"
+
+      - name: Push verified runtime closure to Cachix
+        env:
+          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          OUT_PATH: ${{ steps.package.outputs.out_path }}
+        run: |
+          if [[ -z "${CACHIX_AUTH_TOKEN}" ]]; then
+            echo "CACHIX_AUTH_TOKEN is not configured." >&2
+            exit 1
+          fi
+          cachix authtoken "${CACHIX_AUTH_TOKEN}"
+          cachix push "${CACHE_NAME}" "${OUT_PATH}"
+
+      - name: Export verified metadata
+        id: metadata
+        run: |
+          if git diff --quiet -- source.json; then
+            changed=false
+            echo "No source metadata update required."
+          else
+            changed=true
+          fi
+
+          echo "changed=${changed}" >>"${GITHUB_OUTPUT}"
+          echo "source_json=$(jq -c . source.json)" >>"${GITHUB_OUTPUT}"
+
+  commit:
+    needs: build
+    if: needs.build.outputs.metadata_changed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out default branch
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Verify branch has not moved
+        env:
+          EXPECTED_SHA: ${{ needs.build.outputs.base_sha }}
+        run: |
+          actual_sha="$(git rev-parse HEAD)"
+          if [[ "${actual_sha}" != "${EXPECTED_SHA}" ]]; then
+            echo "The default branch moved during the build." >&2
+            echo "Built ${EXPECTED_SHA}, but the branch is now ${actual_sha}." >&2
+            echo "Re-run the workflow instead of rebasing unverified metadata." >&2
+            exit 1
+          fi
+
+      - name: Commit verified metadata
+        env:
+          SOURCE_JSON: ${{ needs.build.outputs.source_json }}
+        run: |
+          printf '%s\n' "${SOURCE_JSON}" | jq -e . >source.json
+          git diff --check
+
+          version="$(jq -r '.version' source.json)"
+          rev="$(jq -r '.rev' source.json)"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- source.json
+          git commit -m "sing-box: update to ${version}" -m "Upstream-Rev: ${rev}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
