@@ -1,0 +1,46 @@
+name: Check repository
+
+on:
+  pull_request:
+  push:
+    paths:
+      - ".github/**"
+      - "scripts/**"
+      - "tests/**"
+      - "*.nix"
+      - "flake.lock"
+      - "source.json"
+      - "README.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+        with:
+          github_access_token: ${{ github.token }}
+
+      - name: Configure read-only Cachix
+        uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
+        with:
+          name: rannj-nixos
+          skipPush: true
+
+      - name: Check flake
+        run: nix flake check --print-build-logs --no-update-lock-file
