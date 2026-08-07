@@ -51,21 +51,19 @@ what preserves the exact derivation uploaded by CI.
     sing-box-cache.url = "github:rannj/sing-box-nix-cache";
   };
 
-  outputs =
-    {
-      nixpkgs,
-      sing-box-cache,
-      ...
-    }:
-    {
-      nixosConfigurations.HOSTNAME = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        modules = [
-          sing-box-cache.nixosModules.default
-          ./configuration.nix
-        ];
-      };
+  outputs = {
+    nixpkgs,
+    sing-box-cache,
+    ...
+  }: {
+    nixosConfigurations.HOSTNAME = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        sing-box-cache.nixosModules.default
+        ./configuration.nix
+      ];
     };
+  };
 }
 ```
 
