@@ -23,8 +23,10 @@ buildGoModule (finalAttrs: {
 
   tags = [
     "with_quic"
+    "with_utls"
     "with_gvisor"
     "with_tailscale"
+    "with_clash_api"
     "badlinkname"
     "tfogo_checklinkname0"
   ];

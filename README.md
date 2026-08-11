@@ -8,8 +8,10 @@ The package currently enables these build tags:
 
 ```text
 with_quic
+with_utls
 with_gvisor
 with_tailscale
+with_clash_api
 badlinkname
 tfogo_checklinkname0
 ```
