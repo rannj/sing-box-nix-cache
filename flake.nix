@@ -11,13 +11,19 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-      singBox = pkgs.callPackage ./package.nix { };
+      cronetGo = pkgs.callPackage ./cronet-go.nix { };
+      singBox = pkgs.callPackage ./package.nix {
+        inherit cronetGo;
+        clang = pkgs.buildPackages.rustc.llvmPackages.clang-unwrapped;
+        llvmBintools = pkgs.buildPackages.rustc.llvmPackages.bintools;
+      };
       cacheUrl = "https://rannj-nixos.cachix.org";
       cachePublicKey = "rannj-nixos.cachix.org-1:gpiOHG8mVVoIvgYtTf5cGj3pykTxCcGEM9ErtS5xkqI=";
     in
     {
       packages.${system} = {
         sing-box = singBox;
+        cronet-go = cronetGo;
         default = singBox;
       };
 

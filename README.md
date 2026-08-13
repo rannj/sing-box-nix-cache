@@ -14,20 +14,30 @@ with_tailscale
 with_clash_api
 badlinkname
 tfogo_checklinkname0
+with_naive_outbound
+with_ebpf
 ```
+
+This is a Linux glibc build with `CGO_ENABLED=1`. Naive outbound uses the
+Chromium/Cronet static library built from the exact `cronet-go` revision pinned
+by the selected reF1nd commit. The eBPF objects are compiled with Nix-provided
+Clang; the backend uses direct BPF syscalls and does not require libbpf. The
+musl tag and static-musl build path are intentionally not used.
 
 ## Automation
 
 The `Update and build sing-box cache` workflow supports two selection modes:
 
-- At 08:00 Asia/Shanghai every day (00:00 UTC), it selects the newest commit
-  reachable from upstream `testing` whose first commit-message line is exactly
-  `Bump version`.
+- At 08:00 Asia/Shanghai every day (00:00 UTC), it selects the current head of
+  `reF1nd/sing-box` branch `reF1nd-testing`. This is intentional because the
+  fork's eBPF implementation can land after its most recent `Bump version`
+  commit.
 - A manual run requires a 7-to-40-character commit SHA. The commit is resolved
   through the GitHub API and its message is not checked.
 
-The updater reads the version from `docs/changelog.md`, recalculates the source
-and Go module hashes when necessary, and performs a real package build before
+The updater reads the version from `docs/changelog.md` and the matching Cronet
+revision from `.github/CRONET_GO_VERSION`. It recalculates both source and Go
+module hashes for sing-box and Cronet, then performs a real package build before
 keeping any metadata changes. Its update is transactional: an API, hash, or
 build failure restores the original `source.json`.
 
@@ -37,8 +47,7 @@ write-permission job to commit `source.json`. The commit is rejected if the
 default branch moved while the build was running.
 
 Manual commits are temporary overrides. The next scheduled run intentionally
-returns to the newest exact `Bump version` commit, even when that is older than
-the manually selected commit.
+returns to the current `reF1nd-testing` head.
 
 ## Client usage
 

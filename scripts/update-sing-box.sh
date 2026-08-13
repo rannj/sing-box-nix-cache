@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-readonly upstream_repo="${UPSTREAM_REPO:-SagerNet/sing-box}"
-readonly upstream_branch="${UPSTREAM_BRANCH:-testing}"
+readonly upstream_repo="${UPSTREAM_REPO:-reF1nd/sing-box}"
+readonly upstream_branch="${UPSTREAM_BRANCH:-reF1nd-testing}"
 readonly api_base_url="https://api.github.com"
 readonly fake_hash="sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -22,10 +22,10 @@ usage() {
 Usage: scripts/update-sing-box.sh [--commit SHA] [--force]
        scripts/update-sing-box.sh [SHA]
 
-Without a SHA, select the latest exact "Bump version" commit reachable from the
-upstream testing branch. With a SHA, use that commit without checking its
-message. --force recalculates both fixed-output hashes even when the selected
-commit already builds successfully.
+Without a SHA, select the current head commit of the upstream reF1nd-testing
+branch. With a SHA, use that commit without checking its message. --force
+recalculates all fixed-output hashes even when the selected commit already
+builds successfully.
 EOF
 }
 
@@ -121,42 +121,15 @@ resolve_commit() {
   printf '%s\n' "${rev}"
 }
 
-extract_bump_sha() {
-  jq -r '
-    if type != "array" then
-      error("expected a commit array")
-    else
-      map(select((.commit.message | split("\n")[0]) == "Bump version"))
-      | first
-      | .sha // empty
-    end
-  '
-}
+resolve_branch_head() {
+  local response rev
 
-find_latest_bump_commit() {
-  local page commits rev count
-
-  for ((page = 1; page <= 10; page++)); do
-    commits="$(
-      github_get \
-        "${api_base_url}/repos/${upstream_repo}/commits?sha=${upstream_branch}&path=docs%2Fchangelog.md&per_page=100&page=${page}"
-    )"
-    rev="$(extract_bump_sha <<<"${commits}")" ||
-      die "GitHub returned an invalid commit list for ${upstream_repo}."
-
-    if [[ -n "${rev}" ]]; then
-      is_full_commit_sha "${rev}" ||
-        die "GitHub returned an invalid commit SHA: ${rev}"
-      printf '%s\n' "${rev}"
-      return 0
-    fi
-
-    count="$(jq -er 'if type == "array" then length else error("expected an array") end' <<<"${commits}")" ||
-      die "GitHub returned an invalid commit list for ${upstream_repo}."
-    ((count == 100)) || break
-  done
-
-  die "No exact 'Bump version' commit found on ${upstream_branch}."
+  response="$(github_get "${api_base_url}/repos/${upstream_repo}/commits/${upstream_branch}")"
+  rev="$(jq -er '.sha | select(type == "string")' <<<"${response}")" ||
+    die "GitHub returned invalid branch metadata for ${upstream_branch}."
+  is_full_commit_sha "${rev}" ||
+    die "GitHub did not resolve ${upstream_branch} to a full commit SHA."
+  printf '%s\n' "${rev}"
 }
 
 fetch_changelog() {
@@ -173,6 +146,22 @@ fetch_changelog() {
     --retry-all-errors \
     --retry-delay 2 \
     "https://raw.githubusercontent.com/${upstream_repo}/${rev}/docs/changelog.md"
+}
+
+fetch_cronet_rev() {
+  local rev="$1"
+
+  curl \
+    --fail-with-body \
+    --silent \
+    --show-error \
+    --location \
+    --connect-timeout 15 \
+    --max-time 120 \
+    --retry 4 \
+    --retry-all-errors \
+    --retry-delay 2 \
+    "https://raw.githubusercontent.com/${upstream_repo}/${rev}/.github/CRONET_GO_VERSION"
 }
 
 extract_version() {
@@ -193,16 +182,20 @@ validate_metadata() {
     and (.rev | type == "string" and test("^[0-9a-f]{40}$"))
     and (.srcHash | type == "string" and startswith("sha256-"))
     and (.vendorHash | type == "string" and startswith("sha256-"))
+    and (.cronetRev | type == "string" and test("^[0-9a-f]{40}$"))
+    and (.cronetSrcHash | type == "string" and startswith("sha256-"))
+    and (.cronetVendorHash | type == "string" and startswith("sha256-"))
   ' "${metadata_file}" >/dev/null ||
     die "${metadata_file} does not match the expected schema."
 }
 
 nix_build() {
+  local target="${1:-.#sing-box}"
   nix build \
     --no-link \
     --print-build-logs \
     --no-update-lock-file \
-    .#sing-box
+    "${target}"
 }
 
 extract_fixed_output_hash() {
@@ -232,10 +225,11 @@ extract_fixed_output_hash() {
 
 extract_expected_hash() {
   local label="$1"
+  local target="${2:-.#sing-box}"
   local log_file="${work_dir}/${label}.log"
   local status got_hash
 
-  if nix_build 2>&1 | tee "${log_file}" >&2; then
+  if nix_build "${target}" 2>&1 | tee "${log_file}" >&2; then
     status=0
   else
     status=$?
@@ -300,7 +294,8 @@ begin_transaction() {
 }
 
 main() {
-  local rev changelog version current_version current_rev source_hash vendor_hash
+  local rev changelog version cronet_rev current_version current_rev
+  local source_hash vendor_hash cronet_source_hash cronet_vendor_hash
 
   parse_args "$@"
   require_commands
@@ -312,14 +307,19 @@ main() {
     rev="$(resolve_commit "${requested_rev}")"
     echo "Using manually selected commit ${rev}; commit message is not checked."
   else
-    rev="$(find_latest_bump_commit)"
-    echo "Using latest exact 'Bump version' commit ${rev} from ${upstream_branch}."
+    rev="$(resolve_branch_head)"
+    echo "Using branch head ${rev} from ${upstream_branch}."
   fi
 
   changelog="$(fetch_changelog "${rev}")"
   version="$(extract_version <<<"${changelog}")"
   [[ -n "${version}" ]] ||
     die "Could not extract the version from docs/changelog.md at ${rev}."
+  cronet_rev="$(fetch_cronet_rev "${rev}")"
+  cronet_rev="${cronet_rev//$'\r'/}"
+  cronet_rev="${cronet_rev//$'\n'/}"
+  is_full_commit_sha "${cronet_rev}" ||
+    die "Could not extract a full Cronet revision at ${rev}."
 
   current_version="$(jq -r '.version' "${metadata_file}")"
   current_rev="$(jq -r '.rev' "${metadata_file}")"
@@ -340,10 +340,24 @@ main() {
   # These are jq variables, not shell expansions.
   # shellcheck disable=SC2016
   write_metadata \
-    '.version = $version | .rev = $rev | .srcHash = $hash | .vendorHash = $hash' \
+    '.version = $version | .rev = $rev | .srcHash = $hash | .vendorHash = $hash
+     | .cronetRev = $cronetRev | .cronetSrcHash = $hash | .cronetVendorHash = $hash' \
     --arg version "${version}" \
     --arg rev "${rev}" \
+    --arg cronetRev "${cronet_rev}" \
     --arg hash "${fake_hash}"
+
+  cronet_source_hash="$(extract_expected_hash "Cronet source" ".#cronet-go")"
+  # This is a jq variable, not a shell expansion.
+  # shellcheck disable=SC2016
+  write_metadata '.cronetSrcHash = $hash' --arg hash "${cronet_source_hash}"
+  echo "Cronet source hash: ${cronet_source_hash}"
+
+  cronet_vendor_hash="$(extract_expected_hash "Cronet Go module vendor output" ".#cronet-go")"
+  # This is a jq variable, not a shell expansion.
+  # shellcheck disable=SC2016
+  write_metadata '.cronetVendorHash = $hash' --arg hash "${cronet_vendor_hash}"
+  echo "Cronet vendor hash: ${cronet_vendor_hash}"
 
   source_hash="$(extract_expected_hash "source")"
   # shellcheck disable=SC2016

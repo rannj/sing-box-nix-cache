@@ -1,5 +1,5 @@
 name: Update and build sing-box cache
-run-name: "sing-box cache: ${{ inputs.commit_sha || 'latest Bump version' }}"
+run-name: "sing-box cache: ${{ inputs.commit_sha || 'reF1nd-testing head' }}"
 
 on:
   schedule:
@@ -117,6 +117,10 @@ jobs:
           version="$(jq -r '.version' source.json)"
           "${output_path}/bin/sing-box" version | tee /tmp/sing-box-version.txt
           grep -F -- "${version}" /tmp/sing-box-version.txt >/dev/null
+          grep -F -- "with_naive_outbound" /tmp/sing-box-version.txt >/dev/null
+          grep -F -- "with_ebpf" /tmp/sing-box-version.txt >/dev/null
+          ldd "${output_path}/bin/sing-box" | tee /tmp/sing-box-ldd.txt
+          grep -F -- "libc.so.6" /tmp/sing-box-ldd.txt >/dev/null
           echo "out_path=${output_path}" >>"${GITHUB_OUTPUT}"
 
       - name: Push verified runtime closure to Cachix

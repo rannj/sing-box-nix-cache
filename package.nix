@@ -4,6 +4,11 @@
   fetchFromGitHub,
   installShellFiles,
   coreutils,
+  cronetGo,
+  gnumake,
+  clang,
+  linuxHeaders,
+  llvmBintools,
 }:
 let
   source = builtins.fromJSON (builtins.readFile ./source.json);
@@ -13,7 +18,7 @@ buildGoModule (finalAttrs: {
   inherit (source) version;
 
   src = fetchFromGitHub {
-    owner = "SagerNet";
+    owner = "reF1nd";
     repo = "sing-box";
     rev = source.rev;
     hash = source.srcHash;
@@ -29,15 +34,40 @@ buildGoModule (finalAttrs: {
     "with_clash_api"
     "badlinkname"
     "tfogo_checklinkname0"
+    "with_naive_outbound"
+    "with_ebpf"
   ];
 
   subPackages = [
     "cmd/sing-box"
   ];
 
-  env.CGO_ENABLED = 0;
+  env = {
+    CGO_ENABLED = 1;
+    CGO_LDFLAGS = "-fuse-ld=lld";
+  };
 
-  nativeBuildInputs = [installShellFiles];
+  nativeBuildInputs = [
+    installShellFiles
+    gnumake
+    clang
+    llvmBintools
+  ];
+
+  buildInputs = [ cronetGo ];
+
+  postConfigure = ''
+    pushd vendor/github.com/sagernet/cronet-go
+    chmod -R u+w .
+    cp -r ${cronetGo}/. .
+    popd
+  '';
+
+  preBuild = ''
+    make -C common/ebpf generate \
+      BPF_CLANG=${clang}/bin/clang \
+      BPF_SYSTEM_INCLUDE=${linuxHeaders}/include
+  '';
 
   ldflags = [
     "-X=github.com/sagernet/sing-box/constant.Version=${finalAttrs.version}"
@@ -63,8 +93,8 @@ buildGoModule (finalAttrs: {
   '';
 
   meta = {
-    homepage = "https://sing-box.sagernet.org";
-    changelog = "https://github.com/SagerNet/sing-box/blob/${source.rev}/docs/changelog.md";
+    homepage = "https://github.com/reF1nd/sing-box";
+    changelog = "https://github.com/reF1nd/sing-box/blob/${source.rev}/docs/changelog.md";
     description = "Universal proxy platform";
     license = lib.licenses.gpl3Plus;
     mainProgram = "sing-box";
