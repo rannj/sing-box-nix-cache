@@ -9,95 +9,94 @@
   clang,
   linuxHeaders,
   llvmBintools,
-}:
-let
+}: let
   source = builtins.fromJSON (builtins.readFile ./source.json);
 in
-buildGoModule (finalAttrs: {
-  pname = "sing-box";
-  inherit (source) version;
+  buildGoModule (finalAttrs: {
+    pname = "sing-box";
+    inherit (source) version;
 
-  src = fetchFromGitHub {
-    owner = "reF1nd";
-    repo = "sing-box";
-    rev = source.rev;
-    hash = source.srcHash;
-  };
+    src = fetchFromGitHub {
+      owner = "reF1nd";
+      repo = "sing-box";
+      rev = source.rev;
+      hash = source.srcHash;
+    };
 
-  vendorHash = source.vendorHash;
+    vendorHash = source.vendorHash;
 
-  tags = [
-    "with_quic"
-    "with_utls"
-    "with_gvisor"
-    "with_tailscale"
-    "with_clash_api"
-    "badlinkname"
-    "tfogo_checklinkname0"
-    "with_naive_outbound"
-    "with_ebpf"
-  ];
+    tags = [
+      "with_quic"
+      "with_utls"
+      "with_gvisor"
+      "with_tailscale"
+      "with_clash_api"
+      "badlinkname"
+      "tfogo_checklinkname0"
+      "with_naive_outbound"
+      "with_ebpf"
+    ];
 
-  subPackages = [
-    "cmd/sing-box"
-  ];
+    subPackages = [
+      "cmd/sing-box"
+    ];
 
-  env = {
-    CGO_ENABLED = 1;
-    CGO_LDFLAGS = "-fuse-ld=lld";
-  };
+    env = {
+      CGO_ENABLED = 1;
+      CGO_LDFLAGS = "-fuse-ld=lld";
+    };
 
-  nativeBuildInputs = [
-    installShellFiles
-    gnumake
-    clang
-    llvmBintools
-  ];
+    nativeBuildInputs = [
+      installShellFiles
+      gnumake
+      clang
+      llvmBintools
+    ];
 
-  buildInputs = [ cronetGo ];
+    buildInputs = [cronetGo];
 
-  postConfigure = ''
-    pushd vendor/github.com/sagernet/cronet-go
-    chmod -R u+w .
-    cp -r ${cronetGo}/. .
-    popd
-  '';
+    postConfigure = ''
+      pushd vendor/github.com/sagernet/cronet-go
+      chmod -R u+w .
+      cp -r ${cronetGo}/. .
+      popd
+    '';
 
-  preBuild = ''
-    make -C common/ebpf generate \
-      BPF_CLANG=${clang}/bin/clang \
-      BPF_SYSTEM_INCLUDE=${linuxHeaders}/include
-  '';
+    preBuild = ''
+      make -C common/ebpf generate \
+        BPF_CLANG=${clang}/bin/clang \
+        BPF_SYSTEM_INCLUDE=${linuxHeaders}/include
+    '';
 
-  ldflags = [
-    "-X=github.com/sagernet/sing-box/constant.Version=${finalAttrs.version}"
-    "-X=internal/godebug.defaultGODEBUG=multipathtcp=0"
-    "-checklinkname=0"
-  ];
+    ldflags = [
+      "-X=github.com/sagernet/sing-box/constant.Version=${finalAttrs.version}"
+      "-X=internal/godebug.defaultGODEBUG=multipathtcp=0"
+      "-checklinkname=0"
+    ];
 
-  postInstall = ''
-    installShellCompletion release/completions/sing-box.{bash,fish,zsh}
+    postInstall = ''
+      installShellCompletion release/completions/sing-box.{bash,fish,zsh}
 
-    substituteInPlace release/config/sing-box{,@}.service \
-      --replace-fail "/usr/bin/sing-box" "$out/bin/sing-box" \
-      --replace-fail "/bin/kill" "${coreutils}/bin/kill"
-    install -Dm444 -t "$out/lib/systemd/system/" release/config/sing-box{,@}.service
+      substituteInPlace release/config/sing-box{,@}.service \
+        --replace-fail "/usr/bin/sing-box" "$out/bin/sing-box" \
+        --replace-fail "/bin/kill" "${coreutils}/bin/kill"
+      install -Dm444 -t "$out/lib/systemd/system/" release/config/sing-box{,@}.service
 
-    install -Dm444 release/config/sing-box.rules "$out/share/polkit-1/rules.d/sing-box.rules"
-    install -Dm444 release/config/sing-box-split-dns.xml "$out/share/dbus-1/system.d/sing-box-split-dns.conf"
+      install -Dm444 release/config/sing-box.rules "$out/share/polkit-1/rules.d/sing-box.rules"
+      install -Dm444 release/config/sing-box-split-dns.xml "$out/share/dbus-1/system.d/sing-box-split-dns.conf"
 
-    if [[ ! -x "$out/bin/sing-box" ]]; then
-      echo "sing-box build did not install $out/bin/sing-box" >&2
-      exit 1
-    fi
-  '';
+      if [[ ! -x "$out/bin/sing-box" ]]; then
+        echo "sing-box build did not install $out/bin/sing-box" >&2
+        exit 1
+      fi
+    '';
 
-  meta = {
-    homepage = "https://github.com/reF1nd/sing-box";
-    changelog = "https://github.com/reF1nd/sing-box/blob/${source.rev}/docs/changelog.md";
-    description = "Universal proxy platform";
-    license = lib.licenses.gpl3Plus;
-    mainProgram = "sing-box";
-    platforms = [ "x86_64-linux" ];
-  };
-})
+    meta = {
+      homepage = "https://github.com/reF1nd/sing-box";
+      changelog = "https://github.com/reF1nd/sing-box/blob/${source.rev}/docs/changelog.md";
+      description = "Universal proxy platform";
+      license = lib.licenses.gpl3Plus;
+      mainProgram = "sing-box";
+      platforms = ["x86_64-linux"];
+    };
+  })
