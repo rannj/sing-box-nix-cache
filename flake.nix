@@ -24,6 +24,18 @@
     checks.${system} = {
       sing-box = singBox;
 
+      upstream-ldflags = pkgs.runCommand "check-sing-box-upstream-ldflags" {} ''
+        actual="$(tr -d '\r\n' < ${singBox.src}/release/LDFLAGS)"
+        expected=${pkgs.lib.escapeShellArg singBox.passthru.upstreamLdflags}
+        if [[ "$actual" != "$expected" ]]; then
+          echo "reF1nd release/LDFLAGS changed; synchronize package.nix." >&2
+          echo "expected: $expected" >&2
+          echo "actual:   $actual" >&2
+          exit 1
+        fi
+        touch "$out"
+      '';
+
       updater =
         pkgs.runCommand "check-sing-box-updater" {
           nativeBuildInputs = [

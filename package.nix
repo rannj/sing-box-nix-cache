@@ -13,7 +13,7 @@
 in
   buildGoModule (finalAttrs: {
     pname = "sing-box";
-    inherit (source) version;
+    version = "${source.version}-reF1nd";
 
     src = fetchFromGitHub {
       owner = "reF1nd";
@@ -61,9 +61,11 @@ in
 
     ldflags = [
       "-X=github.com/sagernet/sing-box/constant.Version=${finalAttrs.version}"
-      "-X=internal/godebug.defaultGODEBUG=multipathtcp=0"
+      "-X=runtime.godebugDefault=multipathtcp=0,tlssha1=1,tlsunsafeekm=1"
       "-checklinkname=0"
     ];
+
+    passthru.upstreamLdflags = "-X runtime.godebugDefault=multipathtcp=0,tlssha1=1,tlsunsafeekm=1 -checklinkname=0";
 
     postInstall = ''
       installShellCompletion release/completions/sing-box.{bash,fish,zsh}
