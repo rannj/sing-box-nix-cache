@@ -46,7 +46,7 @@ jobs:
         env:
           COMMIT_SHA: ${{ inputs.commit_sha }}
         run: |
-          if [[ ! "${COMMIT_SHA}" =~ ^[0-9A-Fa-f]{7,40}$ ]]; then
+          if [[ -n "${COMMIT_SHA}" && ! "${COMMIT_SHA}" =~ ^[0-9A-Fa-f]{7,40}$ ]]; then
             echo "commit_sha must contain 7 to 40 hexadecimal characters." >&2
             exit 1
           fi
