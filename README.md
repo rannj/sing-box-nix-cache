@@ -8,14 +8,14 @@ The package currently enables these build tags:
 
 ```text
 with_quic
-with_utls
 with_gvisor
+with_utls
+with_ebpf
+with_naive_outbound
 with_tailscale
 with_clash_api
 badlinkname
 tfogo_checklinkname0
-with_naive_outbound
-with_ebpf
 ```
 
 This is a Linux glibc build with `CGO_ENABLED=1`. Naive outbound uses the
@@ -145,7 +145,6 @@ ensures changes to the build environment receive their own validation.
 This repository is already configured for `rannj-nixos`. A fork should replace:
 
 - `CACHE_NAME` in `.github/workflows/update-cache.yml`;
-- the cache name in `.github/workflows/check.yml`;
 - `cacheUrl` and `cachePublicKey` in `flake.nix`;
 - the repository URL and first-build commands in this README.
 

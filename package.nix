@@ -27,14 +27,14 @@ in
 
     tags = [
       "with_quic"
-      "with_utls"
       "with_gvisor"
+      "with_utls"
+      "with_ebpf"
+      "with_naive_outbound"
       "with_tailscale"
       "with_clash_api"
       "badlinkname"
       "tfogo_checklinkname0"
-      "with_naive_outbound"
-      "with_ebpf"
     ];
 
     subPackages = [

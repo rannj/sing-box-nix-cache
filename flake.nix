@@ -47,13 +47,12 @@
           nativeBuildInputs = [pkgs.actionlint];
         } ''
           actionlint \
-            ${self.outPath}/.github/workflows/check.yml \
             ${self.outPath}/.github/workflows/update-cache.yml
           touch "$out"
         '';
     };
 
-    formatter.${system} = pkgs.nixfmt;
+    formatter.${system} = pkgs.alejandra;
 
     devShells.${system}.default = pkgs.mkShellNoCC {
       packages = [
@@ -63,7 +62,7 @@
         pkgs.gh
         pkgs.gnused
         pkgs.jq
-        pkgs.nixfmt
+        pkgs.alejandra
         pkgs.shellcheck
       ];
     };
