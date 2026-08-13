@@ -148,22 +148,6 @@ fetch_changelog() {
     "https://raw.githubusercontent.com/${upstream_repo}/${rev}/docs/changelog.md"
 }
 
-fetch_cronet_rev() {
-  local rev="$1"
-
-  curl \
-    --fail-with-body \
-    --silent \
-    --show-error \
-    --location \
-    --connect-timeout 15 \
-    --max-time 120 \
-    --retry 4 \
-    --retry-all-errors \
-    --retry-delay 2 \
-    "https://raw.githubusercontent.com/${upstream_repo}/${rev}/.github/CRONET_GO_VERSION"
-}
-
 extract_version() {
   sed -nE '
     s/^#### ([0-9][0-9A-Za-z.+-]*)[[:space:]]*$/\1/
@@ -182,9 +166,6 @@ validate_metadata() {
     and (.rev | type == "string" and test("^[0-9a-f]{40}$"))
     and (.srcHash | type == "string" and startswith("sha256-"))
     and (.vendorHash | type == "string" and startswith("sha256-"))
-    and (.cronetRev | type == "string" and test("^[0-9a-f]{40}$"))
-    and (.cronetSrcHash | type == "string" and startswith("sha256-"))
-    and (.cronetVendorHash | type == "string" and startswith("sha256-"))
   ' "${metadata_file}" >/dev/null ||
     die "${metadata_file} does not match the expected schema."
 }
@@ -294,8 +275,7 @@ begin_transaction() {
 }
 
 main() {
-  local rev changelog version cronet_rev current_version current_rev
-  local source_hash vendor_hash cronet_source_hash cronet_vendor_hash
+  local rev changelog version current_version current_rev source_hash vendor_hash
 
   parse_args "$@"
   require_commands
@@ -315,12 +295,6 @@ main() {
   version="$(extract_version <<<"${changelog}")"
   [[ -n "${version}" ]] ||
     die "Could not extract the version from docs/changelog.md at ${rev}."
-  cronet_rev="$(fetch_cronet_rev "${rev}")"
-  cronet_rev="${cronet_rev//$'\r'/}"
-  cronet_rev="${cronet_rev//$'\n'/}"
-  is_full_commit_sha "${cronet_rev}" ||
-    die "Could not extract a full Cronet revision at ${rev}."
-
   current_version="$(jq -r '.version' "${metadata_file}")"
   current_rev="$(jq -r '.rev' "${metadata_file}")"
 
@@ -340,24 +314,10 @@ main() {
   # These are jq variables, not shell expansions.
   # shellcheck disable=SC2016
   write_metadata \
-    '.version = $version | .rev = $rev | .srcHash = $hash | .vendorHash = $hash
-     | .cronetRev = $cronetRev | .cronetSrcHash = $hash | .cronetVendorHash = $hash' \
+    '.version = $version | .rev = $rev | .srcHash = $hash | .vendorHash = $hash' \
     --arg version "${version}" \
     --arg rev "${rev}" \
-    --arg cronetRev "${cronet_rev}" \
     --arg hash "${fake_hash}"
-
-  cronet_source_hash="$(extract_expected_hash "Cronet source" ".#cronet-go")"
-  # This is a jq variable, not a shell expansion.
-  # shellcheck disable=SC2016
-  write_metadata '.cronetSrcHash = $hash' --arg hash "${cronet_source_hash}"
-  echo "Cronet source hash: ${cronet_source_hash}"
-
-  cronet_vendor_hash="$(extract_expected_hash "Cronet Go module vendor output" ".#cronet-go")"
-  # This is a jq variable, not a shell expansion.
-  # shellcheck disable=SC2016
-  write_metadata '.cronetVendorHash = $hash' --arg hash "${cronet_vendor_hash}"
-  echo "Cronet vendor hash: ${cronet_vendor_hash}"
 
   source_hash="$(extract_expected_hash "source")"
   # shellcheck disable=SC2016

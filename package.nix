@@ -4,7 +4,6 @@
   fetchFromGitHub,
   installShellFiles,
   coreutils,
-  cronetGo,
   gnumake,
   clang,
   linuxHeaders,
@@ -24,6 +23,7 @@ in
     };
 
     vendorHash = source.vendorHash;
+    proxyVendor = true;
 
     tags = [
       "with_quic"
@@ -52,15 +52,6 @@ in
       clang
       llvmBintools
     ];
-
-    buildInputs = [cronetGo];
-
-    postConfigure = ''
-      pushd vendor/github.com/sagernet/cronet-go
-      chmod -R u+w .
-      cp -r ${cronetGo}/. .
-      popd
-    '';
 
     preBuild = ''
       make -C common/ebpf generate \

@@ -117,11 +117,7 @@ case "${url}" in
     printf '{"sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}\n'
     ;;
   *"raw.githubusercontent.com"*)
-    if [[ "${url}" == *"CRONET_GO_VERSION" ]]; then
-      printf 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n'
-    else
-      printf '#### 9.9.9\n\nMock changelog.\n'
-    fi
+    printf '#### 9.9.9\n\nMock changelog.\n'
     ;;
   *)
     echo "Unexpected mock curl URL: ${url}" >&2
@@ -136,21 +132,6 @@ set -euo pipefail
 
 src_hash="\$(jq -r '.srcHash' source.json)"
 vendor_hash="\$(jq -r '.vendorHash' source.json)"
-cronet_src_hash="\$(jq -r '.cronetSrcHash' source.json)"
-cronet_vendor_hash="\$(jq -r '.cronetVendorHash' source.json)"
-
-if [[ "\$*" == *".#cronet-go"* && "\${cronet_src_hash}" == "${fake_hash}" ]]; then
-  echo "specified: ${fake_hash}" >&2
-  echo "got: sha256-3333333333333333333333333333333333333333333=" >&2
-  exit 1
-fi
-
-if [[ "\$*" == *".#cronet-go"* && "\${cronet_vendor_hash}" == "${fake_hash}" ]]; then
-  echo "specified: ${fake_hash}" >&2
-  echo "got: sha256-4444444444444444444444444444444444444444444=" >&2
-  exit 1
-fi
-
 if [[ "\${src_hash}" == "${fake_hash}" ]]; then
   echo "specified: ${fake_hash}" >&2
   echo "got: sha256-1111111111111111111111111111111111111111111=" >&2
@@ -176,7 +157,7 @@ EOF
 }
 
 test_successful_transaction() {
-  local fixture status version rev src_hash vendor_hash cronet_rev cronet_src_hash cronet_vendor_hash
+  local fixture status version rev src_hash vendor_hash
   fixture="$(mktemp -d)"
   test_temp_dirs+=("${fixture}")
   setup_mock_repository "${fixture}"
@@ -194,9 +175,6 @@ test_successful_transaction() {
   rev="$(jq -r '.rev' "${fixture}/source.json")"
   src_hash="$(jq -r '.srcHash' "${fixture}/source.json")"
   vendor_hash="$(jq -r '.vendorHash' "${fixture}/source.json")"
-  cronet_rev="$(jq -r '.cronetRev' "${fixture}/source.json")"
-  cronet_src_hash="$(jq -r '.cronetSrcHash' "${fixture}/source.json")"
-  cronet_vendor_hash="$(jq -r '.cronetVendorHash' "${fixture}/source.json")"
   assert_equal "9.9.9" "${version}" "successful transaction stores the selected version"
   assert_equal \
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" \
@@ -210,18 +188,6 @@ test_successful_transaction() {
     "sha256-2222222222222222222222222222222222222222222=" \
     "${vendor_hash}" \
     "successful transaction stores the vendor hash"
-  assert_equal \
-    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" \
-    "${cronet_rev}" \
-    "successful transaction stores the matching Cronet revision"
-  assert_equal \
-    "sha256-3333333333333333333333333333333333333333333=" \
-    "${cronet_src_hash}" \
-    "successful transaction stores the Cronet source hash"
-  assert_equal \
-    "sha256-4444444444444444444444444444444444444444444=" \
-    "${cronet_vendor_hash}" \
-    "successful transaction stores the Cronet vendor hash"
 }
 
 test_failed_transaction_rollback() {

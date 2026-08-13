@@ -19,10 +19,11 @@ tfogo_checklinkname0
 ```
 
 This is a Linux glibc build with `CGO_ENABLED=1`. Naive outbound uses the
-Chromium/Cronet static library built from the exact `cronet-go` revision pinned
-by the selected reF1nd commit. The eBPF objects are compiled with Nix-provided
-Clang; the backend uses direct BPF syscalls and does not require libbpf. The
-musl tag and static-musl build path are intentionally not used.
+prebuilt `libcronet.a` from the exact `cronet-go/lib/linux_amd64` module pinned
+by the selected reF1nd commit's `go.mod` and `go.sum`. The eBPF objects are
+compiled with Nix-provided Clang; the backend uses direct BPF syscalls and does
+not require libbpf. The musl, pure-Go, and static-musl paths are intentionally
+not used.
 
 ## Automation
 
@@ -35,11 +36,12 @@ The `Update and build sing-box cache` workflow supports two selection modes:
 - A manual run requires a 7-to-40-character commit SHA. The commit is resolved
   through the GitHub API and its message is not checked.
 
-The updater reads the version from `docs/changelog.md` and the matching Cronet
-revision from `.github/CRONET_GO_VERSION`. It recalculates both source and Go
-module hashes for sing-box and Cronet, then performs a real package build before
-keeping any metadata changes. Its update is transactional: an API, hash, or
-build failure restores the original `source.json`.
+The updater reads the version from `docs/changelog.md`. It recalculates the
+source and complete Go module proxy hashes, then performs a real package build
+before keeping any metadata changes. Cronet wrapper and prebuilt library
+versions come directly from the selected commit's `go.mod` and `go.sum`. The
+update is transactional: an API, hash, or build failure restores the original
+`source.json`.
 
 CI then smoke-tests `sing-box version`, synchronously pushes the verified
 runtime closure to Cachix, and only afterward starts a separate minimal

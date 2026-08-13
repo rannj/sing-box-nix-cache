@@ -9,9 +9,7 @@
   }: let
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
-    cronetGo = pkgs.callPackage ./cronet-go.nix {};
     singBox = pkgs.callPackage ./package.nix {
-      inherit cronetGo;
       clang = pkgs.buildPackages.rustc.llvmPackages.clang-unwrapped;
       llvmBintools = pkgs.buildPackages.rustc.llvmPackages.bintools;
     };
@@ -20,7 +18,6 @@
   in {
     packages.${system} = {
       sing-box = singBox;
-      cronet-go = cronetGo;
       default = singBox;
     };
 
