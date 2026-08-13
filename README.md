@@ -27,14 +27,13 @@ not used.
 
 ## Automation
 
-The `Update and build sing-box cache` workflow supports two selection modes:
+The `Update and build sing-box cache` workflow runs only when manually
+dispatched and supports two selection modes:
 
-- At 08:00 Asia/Shanghai every day (00:00 UTC), it selects the current head of
-  `reF1nd/sing-box` branch `reF1nd-testing`. This is intentional because the
-  fork's eBPF implementation can land after its most recent `Bump version`
-  commit.
-- A manual run requires a 7-to-40-character commit SHA. The commit is resolved
-  through the GitHub API and its message is not checked.
+- Leave the commit SHA empty to select the current head of `reF1nd/sing-box`
+  branch `reF1nd-testing`.
+- Enter a 7-to-40-character commit SHA to build that commit. It is resolved
+  through the GitHub API, and its message is not checked.
 
 The updater reads the version from `docs/changelog.md`. It recalculates the
 source and complete Go module proxy hashes, then performs a real package build
@@ -48,8 +47,8 @@ runtime closure to Cachix, and only afterward starts a separate minimal
 write-permission job to commit `source.json`. The commit is rejected if the
 default branch moved while the build was running.
 
-Manual commits are temporary overrides. The next scheduled run intentionally
-returns to the current `reF1nd-testing` head.
+Each manual run selects its source independently. Leaving the input empty after
+a pinned run returns to the current `reF1nd-testing` head.
 
 ## Client usage
 
@@ -115,7 +114,7 @@ nix develop
 nix flake check -L --no-update-lock-file
 ```
 
-Select the latest scheduled commit locally:
+Select the latest `reF1nd-testing` commit locally:
 
 ```bash
 GITHUB_TOKEN="$(gh auth token)" ./scripts/update-sing-box.sh

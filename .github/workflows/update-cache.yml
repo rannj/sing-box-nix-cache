@@ -2,14 +2,11 @@ name: Update and build sing-box cache
 run-name: "sing-box cache: ${{ inputs.commit_sha || 'reF1nd-testing head' }}"
 
 on:
-  schedule:
-    # 00:00 UTC is 08:00 in Asia/Shanghai.
-    - cron: "0 0 * * *"
   workflow_dispatch:
     inputs:
       commit_sha:
-        description: "sing-box commit SHA to build (commit message is not checked)"
-        required: true
+        description: "Optional sing-box commit SHA; empty uses reF1nd-testing head"
+        required: false
         type: string
 
 concurrency:
