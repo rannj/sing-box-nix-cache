@@ -27,12 +27,13 @@ in
 
     tags = [
       "with_quic"
-      "with_gvisor"
       "with_utls"
       "with_ebpf"
-      "with_naive_outbound"
+      "with_gvisor"
       "with_tailscale"
+      "with_naive_outbound"
       "with_clash_api"
+      "with_connection_history"
       "badlinkname"
       "tfogo_checklinkname0"
     ];
