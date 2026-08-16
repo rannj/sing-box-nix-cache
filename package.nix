@@ -56,8 +56,16 @@ in
     ];
 
     preBuild = ''
+      bpfSysroot="$(mktemp -d)"
+      mkdir -p "$bpfSysroot/usr"
+      ln -s ${linuxHeaders}/include "$bpfSysroot/usr/include"
+
       make -C common/ebpf generate \
         BPF_CLANG=${clang}/bin/clang \
+        BPF_STRIP=${llvmBintools}/bin/strip \
+        BPF_OBJCOPY=${llvmBintools}/bin/objcopy \
+        BPF_SYSROOT="$bpfSysroot" \
+        BPF_UAPI_ARCH_INCLUDE=${linuxHeaders}/include \
         BPF_SYSTEM_INCLUDE=${linuxHeaders}/include
     '';
 
