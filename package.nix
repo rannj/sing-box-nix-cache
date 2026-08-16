@@ -44,6 +44,7 @@ in
     env = {
       CGO_ENABLED = 1;
       CGO_LDFLAGS = "-fuse-ld=lld";
+      GOAMD64 = "v3";
     };
 
     nativeBuildInputs = [
