@@ -11,6 +11,7 @@ with_quic
 with_utls
 with_ebpf
 with_gvisor
+with_wireguard
 with_tailscale
 with_naive_outbound
 with_clash_api
