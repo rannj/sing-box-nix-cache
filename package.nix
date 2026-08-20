@@ -26,14 +26,12 @@ in
     proxyVendor = true;
 
     tags = [
-      "with_quic"
-      "with_utls"
       "with_ebpf"
+      "with_utls"
+      "with_quic"
       "with_gvisor"
-      "with_wireguard"
-      "with_tailscale"
-      "with_naive_outbound"
       "with_clash_api"
+      "with_naive_outbound"
       "with_connection_history"
       "badlinkname"
       "tfogo_checklinkname0"
