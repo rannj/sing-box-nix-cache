@@ -8,12 +8,10 @@ The package currently enables these build tags:
 
 ```text
 with_ebpf
-with_utls
 with_quic
 with_gvisor
 with_clash_api
 with_naive_outbound
-with_connection_history
 badlinkname
 tfogo_checklinkname0
 ```
