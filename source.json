@@ -1,6 +1,6 @@
 {
-  "version": "1.14.0-beta.17",
-  "rev": "15f4bdbbd83e423cbf74358c0c2bb9b2b361ab1c",
-  "srcHash": "sha256-v4z98yWmlyaDZcUSc8C9KRLdhaZx2po+LsfWgt9Q+eI=",
-  "vendorHash": "sha256-RN84xtbhWg2qsGbzBIsyQXOzuA76azvnjEAG66dPhbM="
+  "version": "1.14.0-rc.1",
+  "rev": "1eeea68a0bbcfa1a92af06149f95f41d73b3db49",
+  "srcHash": "sha256-HT1dkW/4YBYKDPGTwEmyKlQxVZU38YRnIyJHzsdnQzE=",
+  "vendorHash": "sha256-gmqkqASNkvU+PhAukWIRZE1KwZhYHJ/2NSEnWpGI3OY="
 }
