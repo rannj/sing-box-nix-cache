@@ -67,11 +67,11 @@ in
 
     ldflags = [
       "-X=github.com/sagernet/sing-box/constant.Version=${finalAttrs.version}"
-      "-X=runtime.godebugDefault=multipathtcp=0,tlssha1=1,tlsunsafeekm=1"
+      "-X=runtime.godebugDefault=multipathtcp=0,tlssha1=1"
       "-checklinkname=0"
     ];
 
-    passthru.upstreamLdflags = "-X runtime.godebugDefault=multipathtcp=0,tlssha1=1,tlsunsafeekm=1 -checklinkname=0";
+    passthru.upstreamLdflags = "-X runtime.godebugDefault=multipathtcp=0,tlssha1=1 -checklinkname=0";
 
     postInstall = ''
       installShellCompletion release/completions/sing-box.{bash,fish,zsh}
