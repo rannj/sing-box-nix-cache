@@ -10,6 +10,7 @@
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
     singBox = pkgs.callPackage ./package.nix {
+      buildGoModule = pkgs.buildGo127Module;
       clang = pkgs.buildPackages.rustc.llvmPackages.clang-unwrapped;
       llvmBintools = pkgs.buildPackages.rustc.llvmPackages.bintools;
     };
