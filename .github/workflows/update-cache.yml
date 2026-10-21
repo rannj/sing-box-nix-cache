@@ -1,11 +1,11 @@
 name: Update and build sing-box cache
-run-name: "sing-box cache: ${{ inputs.commit_sha || 'reF1nd-testing head' }}"
+run-name: "sing-box cache: ${{ inputs.commit_sha || 'testing-ref1nd head' }}"
 
 on:
   workflow_dispatch:
     inputs:
       commit_sha:
-        description: "Optional sing-box commit SHA; empty uses reF1nd-testing head"
+        description: "Optional sing-box commit SHA; empty uses testing-ref1nd head"
         required: false
         type: string
 

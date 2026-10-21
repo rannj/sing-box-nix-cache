@@ -27,8 +27,8 @@ not used.
 The `Update and build sing-box cache` workflow runs only when manually
 dispatched and supports two selection modes:
 
-- Leave the commit SHA empty to select the current head of `reF1nd/sing-box`
-  branch `reF1nd-testing`.
+- Leave the commit SHA empty to select the current head of `CHIZI-0618/sing-box`
+  branch `testing-ref1nd`.
 - Enter a 7-to-40-character commit SHA to build that commit. It is resolved
   through the GitHub API, and its message is not checked.
 
@@ -45,7 +45,7 @@ write-permission job to commit `source.json`. The commit is rejected if the
 default branch moved while the build was running.
 
 Each manual run selects its source independently. Leaving the input empty after
-a pinned run returns to the current `reF1nd-testing` head.
+a pinned run returns to the current `testing-ref1nd` head.
 
 ## Client usage
 
@@ -111,7 +111,7 @@ nix develop
 nix flake check -L --no-update-lock-file
 ```
 
-Select the latest `reF1nd-testing` commit locally:
+Select the latest `testing-ref1nd` commit locally:
 
 ```bash
 GITHUB_TOKEN="$(gh auth token)" ./scripts/update-sing-box.sh

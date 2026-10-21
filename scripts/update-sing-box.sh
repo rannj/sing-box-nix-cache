@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-readonly upstream_repo="${UPSTREAM_REPO:-reF1nd/sing-box}"
-readonly upstream_branch="${UPSTREAM_BRANCH:-reF1nd-testing}"
+readonly upstream_repo="${UPSTREAM_REPO:-CHIZI-0618/sing-box}"
+readonly upstream_branch="${UPSTREAM_BRANCH:-testing-ref1nd}"
 readonly api_base_url="https://api.github.com"
 readonly fake_hash="sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -22,7 +22,7 @@ usage() {
 Usage: scripts/update-sing-box.sh [--commit SHA] [--force]
        scripts/update-sing-box.sh [SHA]
 
-Without a SHA, select the current head commit of the upstream reF1nd-testing
+Without a SHA, select the current head commit of the upstream testing-ref1nd
 branch. With a SHA, use that commit without checking its message. --force
 recalculates all fixed-output hashes even when the selected commit already
 builds successfully.
