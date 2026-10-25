@@ -85,8 +85,12 @@ in
         --replace-fail "/bin/kill" "${coreutils}/bin/kill"
       install -Dm444 -t "$out/lib/systemd/system/" release/config/sing-box{,@}.service
 
-      install -Dm444 release/config/sing-box.rules "$out/share/polkit-1/rules.d/sing-box.rules"
-      install -Dm444 release/config/sing-box-split-dns.xml "$out/share/dbus-1/system.d/sing-box-split-dns.conf"
+      if [[ -f release/config/sing-box.rules ]]; then
+        install -Dm444 release/config/sing-box.rules "$out/share/polkit-1/rules.d/sing-box.rules"
+      fi
+      if [[ -f release/config/sing-box-split-dns.xml ]]; then
+        install -Dm444 release/config/sing-box-split-dns.xml "$out/share/dbus-1/system.d/sing-box-split-dns.conf"
+      fi
 
       if [[ ! -x "$out/bin/sing-box" ]]; then
         echo "sing-box build did not install $out/bin/sing-box" >&2
