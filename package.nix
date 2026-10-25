@@ -16,8 +16,8 @@ in
     version = "${source.version}-reF1nd";
 
     src = fetchFromGitHub {
-      owner = "CHIZI-0618";
-      repo = "sing-box";
+      owner = source.owner or "CHIZI-0618";
+      repo = source.repo or "sing-box";
       rev = source.rev;
       hash = source.srcHash;
     };
@@ -95,8 +95,8 @@ in
     '';
 
     meta = {
-      homepage = "https://github.com/CHIZI-0618/sing-box";
-      changelog = "https://github.com/CHIZI-0618/sing-box/blob/${source.rev}/docs/changelog.md";
+      homepage = "https://github.com/${source.owner or "CHIZI-0618"}/${source.repo or "sing-box"}";
+      changelog = "https://github.com/${source.owner or "CHIZI-0618"}/${source.repo or "sing-box"}/blob/${source.rev}/docs/changelog.md";
       description = "Universal proxy platform";
       license = lib.licenses.gpl3Plus;
       mainProgram = "sing-box";

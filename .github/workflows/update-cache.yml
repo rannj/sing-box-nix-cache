@@ -1,11 +1,19 @@
 name: Update and build sing-box cache
-run-name: "sing-box cache: ${{ inputs.commit_sha || 'testing-ref1nd head' }}"
+run-name: "sing-box cache: ${{ inputs.upstream || 'CHIZI-0618/sing-box@testing-ref1nd' }} (${{ inputs.commit_sha || 'head' }})"
 
 on:
   workflow_dispatch:
     inputs:
+      upstream:
+        description: "Upstream fork and branch to build"
+        required: true
+        default: "CHIZI-0618/sing-box@testing-ref1nd"
+        type: choice
+        options:
+          - "CHIZI-0618/sing-box@testing-ref1nd"
+          - "reF1nd/sing-box@reF1nd-testing"
       commit_sha:
-        description: "Optional sing-box commit SHA; empty uses testing-ref1nd head"
+        description: "Optional sing-box commit SHA; empty uses branch head"
         required: false
         type: string
 
@@ -75,13 +83,29 @@ jobs:
       - name: Select and update sing-box commit
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          UPSTREAM_CHOICE: ${{ inputs.upstream }}
           MANUAL_COMMIT_SHA: ${{ inputs.commit_sha }}
         run: |
+          case "${UPSTREAM_CHOICE}" in
+            "reF1nd/sing-box@reF1nd-testing")
+              repo="reF1nd/sing-box"
+              branch="reF1nd-testing"
+              ;;
+            "CHIZI-0618/sing-box@testing-ref1nd" | "")
+              repo="CHIZI-0618/sing-box"
+              branch="testing-ref1nd"
+              ;;
+            *)
+              echo "Unknown upstream choice: ${UPSTREAM_CHOICE}" >&2
+              exit 1
+              ;;
+          esac
+
+          args=(--repo "${repo}" --branch "${branch}")
           if [[ -n "${MANUAL_COMMIT_SHA}" ]]; then
-            ./scripts/update-sing-box.sh --commit "${MANUAL_COMMIT_SHA}"
-          else
-            ./scripts/update-sing-box.sh
+            args+=(--commit "${MANUAL_COMMIT_SHA}")
           fi
+          ./scripts/update-sing-box.sh "${args[@]}"
 
       - name: Verify updater scope
         run: |
@@ -189,9 +213,10 @@ jobs:
 
           version="$(jq -r '.version' source.json)"
           rev="$(jq -r '.rev' source.json)"
+          owner="$(jq -r '.owner' source.json)"
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- source.json
-          git commit -m "sing-box: update to ${version}" -m "Upstream-Rev: ${rev}"
+          git commit -m "sing-box: update to ${version} (${owner})" -m "Upstream-Rev: ${rev}"
           git push origin "HEAD:${GITHUB_REF_NAME}"

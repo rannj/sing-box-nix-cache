@@ -157,13 +157,13 @@ EOF
 }
 
 test_successful_transaction() {
-  local fixture status version rev src_hash vendor_hash
+  local fixture status owner repo version rev src_hash vendor_hash
   fixture="$(mktemp -d)"
   test_temp_dirs+=("${fixture}")
   setup_mock_repository "${fixture}"
 
   if PATH="${fixture}/mock-bin:${PATH}" \
-    bash "${fixture}/scripts/update-sing-box.sh" --commit aaaaaaa \
+    bash "${fixture}/scripts/update-sing-box.sh" --repo reF1nd/sing-box --branch reF1nd-testing --commit aaaaaaa \
     >"${fixture}/success.log" 2>&1; then
     status=0
   else
@@ -171,10 +171,14 @@ test_successful_transaction() {
   fi
   assert_equal "0" "${status}" "successful transaction exits cleanly"
 
+  owner="$(jq -r '.owner' "${fixture}/source.json")"
+  repo="$(jq -r '.repo' "${fixture}/source.json")"
   version="$(jq -r '.version' "${fixture}/source.json")"
   rev="$(jq -r '.rev' "${fixture}/source.json")"
   src_hash="$(jq -r '.srcHash' "${fixture}/source.json")"
   vendor_hash="$(jq -r '.vendorHash' "${fixture}/source.json")"
+  assert_equal "reF1nd" "${owner}" "successful transaction stores the selected owner"
+  assert_equal "sing-box" "${repo}" "successful transaction stores the selected repo"
   assert_equal "9.9.9" "${version}" "successful transaction stores the selected version"
   assert_equal \
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" \

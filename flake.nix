@@ -29,7 +29,7 @@
         actual="$(tr -d '\r\n' < ${singBox.src}/release/LDFLAGS)"
         expected=${pkgs.lib.escapeShellArg singBox.passthru.upstreamLdflags}
         if [[ "$actual" != "$expected" ]]; then
-          echo "CHIZI-0618 release/LDFLAGS changed; synchronize package.nix." >&2
+          echo "upstream release/LDFLAGS changed; synchronize package.nix." >&2
           echo "expected: $expected" >&2
           echo "actual:   $actual" >&2
           exit 1

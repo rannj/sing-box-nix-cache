@@ -25,11 +25,11 @@ not used.
 ## Automation
 
 The `Update and build sing-box cache` workflow runs only when manually
-dispatched and supports two selection modes:
+dispatched and supports choosing an upstream target and commit:
 
-- Leave the commit SHA empty to select the current head of `CHIZI-0618/sing-box`
-  branch `testing-ref1nd`.
-- Enter a 7-to-40-character commit SHA to build that commit. It is resolved
+- Choose between `CHIZI-0618/sing-box@testing-ref1nd` and `reF1nd/sing-box@reF1nd-testing`.
+- Leave the commit SHA empty to select the current branch head.
+- Enter a 7-to-40-character commit SHA to build that specific commit. It is resolved
   through the GitHub API, and its message is not checked.
 
 The updater reads the version from `docs/changelog.md`. It recalculates the
@@ -111,10 +111,17 @@ nix develop
 nix flake check -L --no-update-lock-file
 ```
 
-Select the latest `testing-ref1nd` commit locally:
+Select the latest commit locally (defaults to `CHIZI-0618/sing-box@testing-ref1nd`):
 
 ```bash
 GITHUB_TOKEN="$(gh auth token)" ./scripts/update-sing-box.sh
+```
+
+Or target `reF1nd/sing-box@reF1nd-testing`:
+
+```bash
+GITHUB_TOKEN="$(gh auth token)" \
+  ./scripts/update-sing-box.sh --repo reF1nd/sing-box --branch reF1nd-testing
 ```
 
 Select any upstream commit without checking its message:

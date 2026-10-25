@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-readonly upstream_repo="${UPSTREAM_REPO:-CHIZI-0618/sing-box}"
-readonly upstream_branch="${UPSTREAM_BRANCH:-testing-ref1nd}"
+upstream_repo="${UPSTREAM_REPO:-CHIZI-0618/sing-box}"
+upstream_branch="${UPSTREAM_BRANCH:-testing-ref1nd}"
 readonly api_base_url="https://api.github.com"
 readonly fake_hash="sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -19,11 +19,11 @@ transaction_complete=false
 
 usage() {
   cat <<'EOF'
-Usage: scripts/update-sing-box.sh [--commit SHA] [--force]
+Usage: scripts/update-sing-box.sh [--repo OWNER/REPO] [--branch BRANCH] [--commit SHA] [--force]
        scripts/update-sing-box.sh [SHA]
 
-Without a SHA, select the current head commit of the upstream testing-ref1nd
-branch. With a SHA, use that commit without checking its message. --force
+Without a SHA, select the current head commit of the upstream branch.
+With a SHA, use that commit without checking its message. --force
 recalculates all fixed-output hashes even when the selected commit already
 builds successfully.
 EOF
@@ -41,6 +41,16 @@ parse_args() {
         (($# >= 2)) || die "--commit requires a SHA."
         [[ -z "${requested_rev}" ]] || die "A commit SHA was provided more than once."
         requested_rev="$2"
+        shift 2
+        ;;
+      --repo | --upstream-repo)
+        (($# >= 2)) || die "$1 requires a repository in owner/repo format."
+        upstream_repo="$2"
+        shift 2
+        ;;
+      --branch | --upstream-branch)
+        (($# >= 2)) || die "$1 requires a branch name."
+        upstream_branch="$2"
         shift 2
         ;;
       --force)
@@ -162,6 +172,8 @@ extract_version() {
 validate_metadata() {
   jq -e '
     type == "object"
+    and (.owner | type == "string" and length > 0)
+    and (.repo | type == "string" and length > 0)
     and (.version | type == "string" and length > 0)
     and (.rev | type == "string" and test("^[0-9a-f]{40}$"))
     and (.srcHash | type == "string" and startswith("sha256-"))
@@ -238,7 +250,7 @@ write_metadata() {
     return 1
   fi
   chmod --reference="${metadata_file}" "${metadata_temp}"
-  mv -- "${metadata_temp}" "${metadata_file}"
+  mv -f -- "${metadata_temp}" "${metadata_file}"
   metadata_temp=""
 }
 
@@ -275,12 +287,19 @@ begin_transaction() {
 }
 
 main() {
-  local rev changelog version current_version current_rev source_hash vendor_hash
+  local rev changelog version current_version current_rev current_owner current_repo source_hash vendor_hash
+  local upstream_owner upstream_name
 
   parse_args "$@"
   require_commands
   cd -- "${repo_root}"
   [[ -f "flake.lock" ]] || die "flake.lock is required for reproducible builds."
+
+  [[ "${upstream_repo}" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] ||
+    die "upstream_repo must be in 'owner/repo' format."
+  upstream_owner="${upstream_repo%%/*}"
+  upstream_name="${upstream_repo##*/}"
+
   validate_metadata
 
   if [[ -n "${requested_rev}" ]]; then
@@ -295,18 +314,20 @@ main() {
   version="$(extract_version <<<"${changelog}")"
   [[ -n "${version}" ]] ||
     die "Could not extract the version from docs/changelog.md at ${rev}."
+  current_owner="$(jq -r '.owner // empty' "${metadata_file}")"
+  current_repo="$(jq -r '.repo // empty' "${metadata_file}")"
   current_version="$(jq -r '.version' "${metadata_file}")"
   current_rev="$(jq -r '.rev' "${metadata_file}")"
 
-  if [[ "${current_rev}" == "${rev}" && "${current_version}" == "${version}" && "${force_refresh}" != true ]]; then
-    echo "Already tracking sing-box ${version} (${rev}); validating existing hashes."
+  if [[ "${current_owner}" == "${upstream_owner}" && "${current_repo}" == "${upstream_name}" && "${current_rev}" == "${rev}" && "${current_version}" == "${version}" && "${force_refresh}" != true ]]; then
+    echo "Already tracking ${upstream_repo} ${version} (${rev}); validating existing hashes."
     if nix_build; then
       echo "Existing metadata builds successfully."
       return 0
     fi
     echo "Existing metadata failed to build; recalculating fixed-output hashes." >&2
   else
-    echo "Updating sing-box ${current_version} -> ${version}"
+    echo "Updating sing-box ${current_owner}/${current_repo}@${current_version} -> ${upstream_owner}/${upstream_name}@${version}"
     echo "Upstream commit: ${rev}"
   fi
 
@@ -314,7 +335,9 @@ main() {
   # These are jq variables, not shell expansions.
   # shellcheck disable=SC2016
   write_metadata \
-    '.version = $version | .rev = $rev | .srcHash = $hash | .vendorHash = $hash' \
+    '.owner = $owner | .repo = $repo | .version = $version | .rev = $rev | .srcHash = $hash | .vendorHash = $hash' \
+    --arg owner "${upstream_owner}" \
+    --arg repo "${upstream_name}" \
     --arg version "${version}" \
     --arg rev "${rev}" \
     --arg hash "${fake_hash}"
