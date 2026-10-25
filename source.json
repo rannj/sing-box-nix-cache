@@ -1,8 +1,8 @@
 {
-  "owner": "CHIZI-0618",
+  "owner": "reF1nd",
   "repo": "sing-box",
-  "version": "1.15.0-alpha.12",
-  "rev": "12ee03ba480c2c99c4547d8c82825bd5f07661ac",
-  "srcHash": "sha256-2vh/WsqMCCeuE3L+BxAKKvP6kS5gsiwxX3Fj5tUC/d0=",
-  "vendorHash": "sha256-pf900sO8wPsAqoOLk6BnnrX0B50B+MmqnrLqkR30o58="
+  "version": "1.15.0-alpha.13",
+  "rev": "17397d022647b73378705e1f91ff031dddaaec21",
+  "srcHash": "sha256-zMqLVL2GcQP5jnKGtifX6HQRHC95FZPYqt3XoHv0UWU=",
+  "vendorHash": "sha256-v3J+B0g5uEHmLmfSXGgYXC7ziMHWqNlxHhvhxyXeiFQ="
 }
