@@ -25,14 +25,18 @@ in
     vendorHash = source.vendorHash;
     proxyVendor = true;
 
-    tags = [
-      "with_ebpf"
-      "with_quic"
-      "with_clash_api"
-      "with_naive_outbound"
-      "badlinkname"
-      "tfogo_checklinkname0"
-    ];
+    tags =
+      [
+        "with_ebpf"
+        "with_quic"
+        "with_clash_api"
+        "with_naive_outbound"
+        "badlinkname"
+        "tfogo_checklinkname0"
+      ]
+      ++ lib.optionals ((source.owner or "") == "MiChongs") [
+        "with_xhttp"
+      ];
 
     subPackages = [
       "cmd/sing-box"

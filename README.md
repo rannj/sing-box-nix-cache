@@ -15,6 +15,8 @@ badlinkname
 tfogo_checklinkname0
 ```
 
+When building from `MiChongs/sing-box`, `with_xhttp` is also added.
+
 This is a Linux glibc build with `CGO_ENABLED=1`. Naive outbound uses the
 prebuilt `libcronet.a` from the exact `cronet-go/lib/linux_amd64` module pinned
 by the selected reF1nd commit's `go.mod` and `go.sum`. The eBPF objects are
@@ -27,7 +29,7 @@ not used.
 The `Update and build sing-box cache` workflow runs only when manually
 dispatched and supports choosing an upstream target and commit:
 
-- Choose between `CHIZI-0618/sing-box@testing-ref1nd` and `reF1nd/sing-box@reF1nd-testing`.
+- Choose between `CHIZI-0618/sing-box@testing-ref1nd`, `reF1nd/sing-box@reF1nd-testing`, and `MiChongs/sing-box@xiaobaf14g-testing`.
 - Leave the commit SHA empty to select the current branch head.
 - Enter a 7-to-40-character commit SHA to build that specific commit. It is resolved
   through the GitHub API, and its message is not checked.
@@ -122,6 +124,13 @@ Or target `reF1nd/sing-box@reF1nd-testing`:
 ```bash
 GITHUB_TOKEN="$(gh auth token)" \
   ./scripts/update-sing-box.sh --repo reF1nd/sing-box --branch reF1nd-testing
+```
+
+Or target `MiChongs/sing-box@xiaobaf14g-testing`:
+
+```bash
+GITHUB_TOKEN="$(gh auth token)" \
+  ./scripts/update-sing-box.sh --repo MiChongs/sing-box --branch xiaobaf14g-testing
 ```
 
 Select any upstream commit without checking its message:

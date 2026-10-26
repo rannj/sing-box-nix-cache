@@ -12,6 +12,7 @@ on:
         options:
           - "CHIZI-0618/sing-box@testing-ref1nd"
           - "reF1nd/sing-box@reF1nd-testing"
+          - "MiChongs/sing-box@xiaobaf14g-testing"
       commit_sha:
         description: "Optional sing-box commit SHA; empty uses branch head"
         required: false
@@ -87,6 +88,10 @@ jobs:
           MANUAL_COMMIT_SHA: ${{ inputs.commit_sha }}
         run: |
           case "${UPSTREAM_CHOICE}" in
+            "MiChongs/sing-box@xiaobaf14g-testing")
+              repo="MiChongs/sing-box"
+              branch="xiaobaf14g-testing"
+              ;;
             "reF1nd/sing-box@reF1nd-testing")
               repo="reF1nd/sing-box"
               branch="reF1nd-testing"
@@ -141,6 +146,13 @@ jobs:
           grep -F -- "${version}-reF1nd" /tmp/sing-box-version.txt >/dev/null
           grep -F -- "with_naive_outbound" /tmp/sing-box-version.txt >/dev/null
           grep -F -- "with_ebpf" /tmp/sing-box-version.txt >/dev/null
+          owner="$(jq -r '.owner' source.json)"
+          if [[ "${owner}" == "MiChongs" ]]; then
+            grep -F -- "with_xhttp" /tmp/sing-box-version.txt >/dev/null
+          elif grep -F -- "with_xhttp" /tmp/sing-box-version.txt >/dev/null; then
+            echo "Unexpected with_xhttp build tag for ${owner}." >&2
+            exit 1
+          fi
           if grep -F -- "with_musl" /tmp/sing-box-version.txt >/dev/null; then
             echo "Unexpected with_musl build tag." >&2
             exit 1
