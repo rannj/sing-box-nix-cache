@@ -30,6 +30,7 @@ in
         "with_ebpf"
         "with_quic"
         "with_clash_api"
+        "with_tailscale"
         "with_naive_outbound"
         "badlinkname"
         "tfogo_checklinkname0"
